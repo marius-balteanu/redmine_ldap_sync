@@ -16,13 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Redmine LDAP Sync.  If not, see <http://www.gnu.org/licenses/>.
 module LdapSync::Infectors::Person
-  ::Person::STANDARD_FIELDS = %w( phone job_title )
+  ::Person::STANDARD_FIELDS = %w( phone job_title department_id )
 
   module InstanceMethods
 
     def synced_fields=(attrs)
-      self.attributes = attrs.slice(*::Person::STANDARD_FIELDS)
+      self.information_attributes = attrs.slice(*::Person::STANDARD_FIELDS)
     end
+
   end
 
 

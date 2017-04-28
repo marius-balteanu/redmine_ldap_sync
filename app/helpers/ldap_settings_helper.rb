@@ -115,9 +115,9 @@ module LdapSettingsHelper
   end
 
   def person_fields
+    return [] unless Redmine::Plugin.installed?(:redmine_people)
+
     has_person_ldap_attrs = @ldap_setting.has_person_ldap_attrs?
-    # if Redmine::Plugin.installed?(:redmine_people)
-    # end
 
     Person::STANDARD_FIELDS.map do |f|
       SyncField.new(
