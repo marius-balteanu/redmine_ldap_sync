@@ -55,7 +55,7 @@ class LdapSetting
   validate :validate_group_filter
   validate :validate_user_fields_to_sync, :validate_user_ldap_attrs
   validate :validate_group_fields_to_sync, :validate_group_ldap_attrs
-  validate :validate_person_fields_to_sync, :validate_person_ldap_attrs
+  validate :validate_person_fields_to_sync, :validate_person_ldap_attrs if Redmine::Plugin.installed?(:redmine_people)
 
   before_validation :strip_names, :set_ldap_attrs, :set_fields_to_sync
 
@@ -187,8 +187,9 @@ class LdapSetting
   # Returns the user field name for the given ldap attribute
   def user_field(ldap_attr)
     ldap_attr = ldap_attr.to_s
+    user_ldap_attrs.merge(person_ldap_attrs) if Redmine::Plugin.installed?(:redmine_people)
     result = @user_standard_ldap_attrs.find {|(k, v)| v.downcase == ldap_attr }.try(:first)
-    result ||= (user_ldap_attrs.merge(person_ldap_attrs)).find {|(k, v)| v.downcase == ldap_attr }.try(:first)
+    result ||= (user_ldap_attrs).find {|(k, v)| v.downcase == ldap_attr }.try(:first)
   end
 
   def test

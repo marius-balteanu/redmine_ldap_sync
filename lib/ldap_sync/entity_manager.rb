@@ -22,13 +22,18 @@ module LdapSync::EntityManager
 
   private
     def get_user_fields(username, user_data=nil, options={})
-      fields_to_sync = setting.user_fields_to_sync + setting.person_fields_to_sync
+      fields_to_sync = setting.user_fields_to_sync
+      fields_to_sync = fields_to_sync + setting.person_fields_to_sync if Redmine::Plugin.installed?(:usability)
+
       if options.try(:fetch, :include_required, false)
         custom_fields = user_required_custom_fields.map {|cf| cf.id.to_s }
         fields_to_sync -= (User::STANDARD_FIELDS + custom_fields)
         fields_to_sync += (User::STANDARD_FIELDS + custom_fields)
       end
-      ldap_attrs_to_sync = setting.user_ldap_attrs_to_sync(fields_to_sync) + setting.person_ldap_attrs_to_sync(fields_to_sync)
+      ldap_attrs_to_sync = setting.user_ldap_attrs_to_sync(fields_to_sync)
+      ldap_attrs_to_sync = ldap_attrs_to_sync + setting.person_ldap_attrs_to_sync(fields_to_sync) if Redmine::Plugin.installed?(:usability) 
+
+      departments = Department.all.pluck(:id, :name) if Redmine::Plugin.installed?(:redmine_people)
 
       user_data ||= with_ldap_connection do |ldap|
         find_user(ldap, username, ldap_attrs_to_sync)
@@ -38,6 +43,9 @@ module LdapSync::EntityManager
       user_fields = user_data.inject({}) do |fields, (attr, value)|
         f = setting.user_field(attr)
         if f && fields_to_sync.include?(f)
+          if (f.to_s == 'department_id' && Redmine::Plugin.installed?(:redmine_people))
+            value, = departments.select {|k,v| v == value.first.to_s} unless value.nil? || value.first.blank?
+          end
           fields[f] = value.first unless value.nil? || value.first.blank?
         end
         fields

@@ -62,7 +62,8 @@ module LdapSync::Infectors::AuthSourceLdap
 
       with_ldap_connection do |_|
         ldap_users[:disabled].each do |login|
-          user = Person.where("LOWER(login) = ?", login.mb_chars.downcase).first
+          klass = Redmine::Plugin.installed?(:redmine_people) ? 'Person' : 'User'          
+          user = Object.const_get(klass).where("LOWER(login) = ?", login.mb_chars.downcase).first
 
           if user.try(:active?)
             if user.lock!
@@ -176,8 +177,7 @@ module LdapSync::Infectors::AuthSourceLdap
       end
 
       def sync_user_fields(user, user_data = nil)
-        return unless setting.active? && setting.sync_user_fields?
-
+        return unless setting.active? && (setting.sync_user_fields? || setting.sync_person_fields?)
         user.synced_fields = get_user_fields(user.login, user_data)
 
         if user.save
@@ -269,7 +269,8 @@ module LdapSync::Infectors::AuthSourceLdap
       end
 
       def find_local_user(username)
-        user = ::Person.where("LOWER(login) = ?", username.mb_chars.downcase).first
+        klass = Redmine::Plugin.installed?(:redmine_people) ? 'Person' : 'User'
+        user = ::Object.const_get(klass).where("LOWER(login) = ?", username.mb_chars.downcase).first
         if user.present? && user.auth_source_id != self.id
           trace "-- Skipping user '#{user.login}': it already exists on a different auth_source"
           return nil, true
