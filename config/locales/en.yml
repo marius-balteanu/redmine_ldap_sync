@@ -22,6 +22,7 @@ en:
   label_ldap_attributes_on_a_user: "LDAP attributes on a user"
   label_ldap_attributes_on_a_group: "LDAP attributes on a group"
   label_log_messages: "Log messages"
+  label_person: "Person"
 
   button_test: "Test"
   button_execute: "Execute"

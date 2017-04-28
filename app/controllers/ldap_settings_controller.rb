@@ -114,7 +114,7 @@ class LdapSettingsController < ApplicationController
     end
 
     def update_ldap_setting_from_params
-      %w(user group).each do |e|
+      %w(user group person).each do |e|
         params[:ldap_setting]["#{e}_fields_to_sync"] = params["#{e}_fields_to_sync"]
         params[:ldap_setting]["#{e}_ldap_attrs"] = params["#{e}_ldap_attrs"]
       end if params[:ldap_setting]

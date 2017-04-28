@@ -91,8 +91,9 @@ module LdapSettingsHelper
 
   def user_fields
     has_user_ldap_attrs = @ldap_setting.has_user_ldap_attrs?
+    standard_fields = User::STANDARD_FIELDS + UserCustomField.all
 
-    (User::STANDARD_FIELDS + UserCustomField.all).map do |f|
+    standard_fields.map do |f|
       if f.is_a?(String)
         id        = f
         name      = l("field_#{f}")
@@ -110,6 +111,23 @@ module LdapSettingsHelper
       sync = @ldap_setting.sync_user_fields? && @ldap_setting.user_fields_to_sync.include?(id.to_s)
 
       SyncField.new(id, name, required, sync, ldap_attr, default)
+    end
+  end
+
+  def person_fields
+    has_person_ldap_attrs = @ldap_setting.has_person_ldap_attrs?
+    # if Redmine::Plugin.installed?(:redmine_people)
+    # end
+
+    Person::STANDARD_FIELDS.map do |f|
+      SyncField.new(
+        f,
+        l("label_people_#{f}"),
+        false,
+        @ldap_setting.sync_person_fields? && @ldap_setting.person_fields_to_sync.include?(f.to_s),
+        has_person_ldap_attrs ? @ldap_setting.person_ldap_attrs[f.to_s] : '',
+        ''
+      )
     end
   end
 

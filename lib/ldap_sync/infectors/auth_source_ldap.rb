@@ -61,8 +61,8 @@ module LdapSync::Infectors::AuthSourceLdap
       @closure_cache = new_memory_cache if setting.nested_groups_enabled?
 
       with_ldap_connection do |_|
-        ldap_users[:locked].each do |login|
-          user = self.users.where("LOWER(login) = ?", login.mb_chars.downcase).first
+        ldap_users[:disabled].each do |login|
+          user = Person.where("LOWER(login) = ?", login.mb_chars.downcase).first
 
           if user.try(:active?)
             if user.lock!
@@ -110,7 +110,8 @@ module LdapSync::Infectors::AuthSourceLdap
         sync_fields = !is_new_user && (!options[:try_to_login] || setting.sync_fields_on_login?)
 
         user_data, flags = if options[:try_to_login] && setting.has_account_flags? && sync_fields
-          user_data = find_user(ldap, user.login, setting.user_ldap_attrs_to_sync + ns(:account_flags))
+          user_attributes = setting.user_ldap_attrs_to_sync + ns(:account_flags) + setting.person_ldap_attrs_to_sync
+          user_data = find_user(ldap, user.login, user_attributes)
           [user_data, user_data.present? ? user_data[n(:account_flags)].first : :deleted]
         end
 
@@ -268,7 +269,7 @@ module LdapSync::Infectors::AuthSourceLdap
       end
 
       def find_local_user(username)
-        user = ::User.where("LOWER(#{User.table_name}.login) = ?", username.mb_chars.downcase).first
+        user = ::Person.where("LOWER(login) = ?", username.mb_chars.downcase).first
         if user.present? && user.auth_source_id != self.id
           trace "-- Skipping user '#{user.login}': it already exists on a different auth_source"
           return nil, true

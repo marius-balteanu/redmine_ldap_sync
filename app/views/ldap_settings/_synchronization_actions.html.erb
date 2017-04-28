@@ -31,7 +31,7 @@
       </tr>
     </thead>
     <tbody>
-      <% { :user => user_fields, :group => group_fields }.each do |k, fields| %>
+      <% { :user => user_fields, :group => group_fields, :person => person_fields }.each do |k, fields| %>
       <% if fields.any? -%>
         <tr class="group open">
           <td colspan="4">
@@ -48,7 +48,7 @@
             <%= check_box_tag "#{k}_fields_to_sync[]", field.id, field.synchronize?, :class => 'sync' %>
           </td>
           <td align="center">
-            <%= text_field_tag "#{k}_ldap_attrs[#{field.id}]", field.ldap_attribute, :size => 12, :disabled => field.id.is_a?(String) %>
+            <%= text_field_tag "#{k}_ldap_attrs[#{field.id}]", field.ldap_attribute, :size => 12, :disabled => (field.id.is_a?(String) && k != :person) %>
           </td>
           <td align="center">
             <%=h field.default_value %>

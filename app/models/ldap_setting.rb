@@ -26,11 +26,11 @@ class LdapSetting
   include ActiveModel::AttributeMethods
 
   # LDAP_DESCRIPTORS
-  LDAP_ATTRIBUTES = %w( groupname member user_memberid user_groups groupid parent_group primary_group group_parentid member_group group_memberid account_flags )
-  CLASS_NAMES = %w( class_user class_group )
+  LDAP_ATTRIBUTES = %w( groupname member user_memberid user_groups groupid parent_group primary_group group_parentid member_group group_memberid account_flags)
+  CLASS_NAMES = %w( class_user class_group class_person )
   FLAGS = %w( create_groups create_users active )
   COMBOS = %w( group_membership nested_groups sync_on_login dyngroups users_search_scope )
-  OTHERS = %w( account_locked_test user_fields_to_sync group_fields_to_sync user_ldap_attrs group_ldap_attrs fixed_group admin_group required_group group_search_filter groupname_pattern groups_base_dn dyngroups_cache_ttl )
+  OTHERS = %w( account_locked_test user_fields_to_sync group_fields_to_sync person_fields_to_sync user_ldap_attrs group_ldap_attrs person_ldap_attrs fixed_group admin_group required_group group_search_filter groupname_pattern groups_base_dn dyngroups_cache_ttl )
 
   validates_presence_of :auth_source_ldap_id
   validates_presence_of :class_user, :class_group, :groupname
@@ -55,6 +55,7 @@ class LdapSetting
   validate :validate_group_filter
   validate :validate_user_fields_to_sync, :validate_user_ldap_attrs
   validate :validate_group_fields_to_sync, :validate_group_ldap_attrs
+  validate :validate_person_fields_to_sync, :validate_person_ldap_attrs
 
   before_validation :strip_names, :set_ldap_attrs, :set_fields_to_sync
 
@@ -66,7 +67,7 @@ class LdapSetting
   safe_attributes *(LDAP_ATTRIBUTES + CLASS_NAMES + FLAGS + COMBOS + OTHERS)
   define_attribute_methods LDAP_ATTRIBUTES + CLASS_NAMES + FLAGS + COMBOS + OTHERS
 
-  [:login, *User::STANDARD_FIELDS].each {|f| module_eval("def #{f}; auth_source_ldap.attr_#{f}; end") }
+  [:login, *User::STANDARD_FIELDS].each {|f| module_eval("def #{f}; auth_source_ldap.attr_#{f}; end;");}
 
   def id
     @auth_source_ldap_id
@@ -120,6 +121,10 @@ class LdapSetting
     has_group_fields_to_sync?
   end
 
+  def sync_person_fields?
+    has_person_fields_to_sync?
+  end
+
   def sync_dyngroups?
     has_dyngroups?
   end
@@ -157,6 +162,11 @@ class LdapSetting
     (fields||[]).map {|f| user_ldap_attrs[f] || (send(f.to_sym) if respond_to?(f.to_sym)) }
   end
 
+  # Returns an array of ldap attributes to used when syncing the user fields
+  def person_ldap_attrs_to_sync(fields = person_fields_to_sync)
+    (fields||[]).map {|f| person_ldap_attrs[f] || (send(f.to_sym) if respond_to?(f.to_sym)) }
+  end
+
   # Returns an array of ldap attributes to used when syncing the group fields
   def group_ldap_attrs_to_sync
     (group_fields_to_sync||[]).map {|f| group_ldap_attrs[f] }
@@ -178,7 +188,7 @@ class LdapSetting
   def user_field(ldap_attr)
     ldap_attr = ldap_attr.to_s
     result = @user_standard_ldap_attrs.find {|(k, v)| v.downcase == ldap_attr }.try(:first)
-    result ||= user_ldap_attrs.find {|(k, v)| v.downcase == ldap_attr }.try(:first)
+    result ||= (user_ldap_attrs.merge(person_ldap_attrs)).find {|(k, v)| v.downcase == ldap_attr }.try(:first)
   end
 
   def test
@@ -229,7 +239,8 @@ class LdapSetting
 
   def save
     return false if invalid?
-
+    Rails.logger.debug("!"*50)
+    Rails.logger.debug(@attributes)
     self.settings = delete_unsafe_attributes(@attributes, User.current)
   end
 
@@ -311,14 +322,29 @@ class LdapSetting
       validate_fields group_fields_to_sync, GroupCustomField.all, group_ldap_attrs
     end
 
+    def validate_person_ldap_attrs
+      validate_ldap_attrs person_ldap_attrs, Person::STANDARD_FIELDS
+    end
+
+    def validate_person_fields_to_sync
+      validate_fields person_fields_to_sync, Person::STANDARD_FIELDS, person_ldap_attrs
+    end
+
     def validate_ldap_attrs(ldap_attrs, fields)
-      field_ids = fields.map {|f| f.id.to_s }
+      field_ids = fields.map {|f| f.try(:id) ? f.id.to_s : f.to_s }
       ldap_attrs.each do |k, v|
         if !field_ids.include?(k)
           errors.add :user_group_fields, :invalid unless errors.added? :user_group_fields, :invalid
 
         elsif v.present? && v !~ /\A[a-z][a-z0-9-]*\z/i
-          field_name = fields.find {|f| f.id == k.to_i }.name
+          field_name = ''
+          fields.each do |f|
+            if f.try(:id)
+              field_name = f.name if f.id.to_i == k.to_i
+            else
+              field_name = f if f.to_s == k.to_s
+            end
+          end
           errors.add :base, :invalid_ldap_attribute, :field => field_name
         end
       end
@@ -342,11 +368,13 @@ class LdapSetting
     def set_fields_to_sync
       self.user_fields_to_sync ||= []
       self.group_fields_to_sync ||= []
+      self.person_fields_to_sync ||= []
     end
 
     def set_ldap_attrs
       self.user_ldap_attrs ||= {}
       self.group_ldap_attrs ||= {}
+      self.person_ldap_attrs ||= {}
     end
 
     def strip_names
