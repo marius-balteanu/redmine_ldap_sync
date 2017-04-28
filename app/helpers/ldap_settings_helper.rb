@@ -91,9 +91,8 @@ module LdapSettingsHelper
 
   def user_fields
     has_user_ldap_attrs = @ldap_setting.has_user_ldap_attrs?
-    standard_fields = User::STANDARD_FIELDS + UserCustomField.all
 
-    standard_fields.map do |f|
+    (User::STANDARD_FIELDS + UserCustomField.all).map do |f|
       if f.is_a?(String)
         id        = f
         name      = l("field_#{f}")
