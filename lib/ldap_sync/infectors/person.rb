@@ -26,7 +26,6 @@ module LdapSync::Infectors::Person
 
   end
 
-
   def self.included(receiver)
     receiver.send(:include, InstanceMethods)
   end

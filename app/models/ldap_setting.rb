@@ -67,7 +67,7 @@ class LdapSetting
   safe_attributes *(LDAP_ATTRIBUTES + CLASS_NAMES + FLAGS + COMBOS + OTHERS)
   define_attribute_methods LDAP_ATTRIBUTES + CLASS_NAMES + FLAGS + COMBOS + OTHERS
 
-  [:login, *User::STANDARD_FIELDS].each {|f| module_eval("def #{f}; auth_source_ldap.attr_#{f}; end");}
+  [:login, *User::STANDARD_FIELDS].each {|f| module_eval("def #{f}; auth_source_ldap.attr_#{f}; end")}
 
   def id
     @auth_source_ldap_id
@@ -189,7 +189,7 @@ class LdapSetting
     ldap_attr = ldap_attr.to_s
     user_ldap_attrs.merge(person_ldap_attrs) if Redmine::Plugin.installed?(:redmine_people)
     result = @user_standard_ldap_attrs.find {|(k, v)| v.downcase == ldap_attr }.try(:first)
-    result ||= (user_ldap_attrs).find {|(k, v)| v.downcase == ldap_attr }.try(:first)
+    result ||= user_ldap_attrs.find {|(k, v)| v.downcase == ldap_attr }.try(:first)
   end
 
   def test
@@ -240,8 +240,6 @@ class LdapSetting
 
   def save
     return false if invalid?
-    Rails.logger.debug("!"*50)
-    Rails.logger.debug(@attributes)
     self.settings = delete_unsafe_attributes(@attributes, User.current)
   end
 
