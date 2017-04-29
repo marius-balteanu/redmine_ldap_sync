@@ -23,6 +23,7 @@ en:
   label_ldap_attributes_on_a_group: "LDAP attributes on a group"
   label_log_messages: "Log messages"
   label_person: "Person"
+  label_people_department_id: "Department"
 
   button_test: "Test"
   button_execute: "Execute"

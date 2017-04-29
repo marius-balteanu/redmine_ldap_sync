@@ -23,7 +23,7 @@ module LdapSync::EntityManager
   private
     def get_user_fields(username, user_data=nil, options={})
       fields_to_sync = setting.user_fields_to_sync
-      fields_to_sync = fields_to_sync + setting.person_fields_to_sync if Redmine::Plugin.installed?(:usability)
+      fields_to_sync = fields_to_sync + setting.person_fields_to_sync if Redmine::Plugin.installed?(:redmine_people)
 
       if options.try(:fetch, :include_required, false)
         custom_fields = user_required_custom_fields.map {|cf| cf.id.to_s }
@@ -31,7 +31,7 @@ module LdapSync::EntityManager
         fields_to_sync += (User::STANDARD_FIELDS + custom_fields)
       end
       ldap_attrs_to_sync = setting.user_ldap_attrs_to_sync(fields_to_sync)
-      ldap_attrs_to_sync = ldap_attrs_to_sync + setting.person_ldap_attrs_to_sync(fields_to_sync) if Redmine::Plugin.installed?(:usability) 
+      ldap_attrs_to_sync = ldap_attrs_to_sync + setting.person_ldap_attrs_to_sync(fields_to_sync) if Redmine::Plugin.installed?(:redmine_people)
 
       departments = Department.all.pluck(:id, :name) if Redmine::Plugin.installed?(:redmine_people)
 
