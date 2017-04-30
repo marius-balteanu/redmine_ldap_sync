@@ -162,7 +162,7 @@ class LdapSetting
     (fields||[]).map {|f| user_ldap_attrs[f] || (send(f.to_sym) if respond_to?(f.to_sym)) }
   end
 
-  # Returns an array of ldap attributes to used when syncing the user fields
+  # Returns an array of ldap attributes to used when syncing the person fields
   def person_ldap_attrs_to_sync(fields = person_fields_to_sync)
     (fields||[]).map {|f| person_ldap_attrs[f] || (send(f.to_sym) if respond_to?(f.to_sym)) }
   end
@@ -187,7 +187,8 @@ class LdapSetting
   # Returns the user field name for the given ldap attribute
   def user_field(ldap_attr)
     ldap_attr = ldap_attr.to_s
-    user_ldap_attrs.merge(person_ldap_attrs) if Redmine::Plugin.installed?(:redmine_people)
+    user_ldap_attrs.reverse_merge!(person_ldap_attrs) if Redmine::Plugin.installed?(:redmine_people)
+
     result = @user_standard_ldap_attrs.find {|(k, v)| v.downcase == ldap_attr }.try(:first)
     result ||= user_ldap_attrs.find {|(k, v)| v.downcase == ldap_attr }.try(:first)
   end
