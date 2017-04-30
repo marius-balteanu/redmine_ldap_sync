@@ -62,9 +62,7 @@ module LdapSync::Infectors::AuthSourceLdap
 
       with_ldap_connection do |_|
         ldap_users[:disabled].each do |login|
-          klass = Redmine::Plugin.installed?(:redmine_people) ? 'Person' : 'User'          
-          user = Object.const_get(klass).where("LOWER(login) = ?", login.mb_chars.downcase).first
-
+          user = User.where("LOWER(login) = ?", login.mb_chars.downcase).first
           if user.try(:active?)
             if user.lock!
               change user.login, "-- Locked active user '#{user.login}' (#{user.name})"
