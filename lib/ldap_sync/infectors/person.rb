@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Redmine LDAP Sync.  If not, see <http://www.gnu.org/licenses/>.
 module LdapSync::Infectors::Person
-  ::Person::STANDARD_FIELDS = %w( phone job_title department_id )
+  ::Person::STANDARD_FIELDS = %w( phone job_title department_id quota )
 
   module InstanceMethods
 
