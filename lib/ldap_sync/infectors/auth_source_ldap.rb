@@ -62,7 +62,7 @@ module LdapSync::Infectors::AuthSourceLdap
 
       with_ldap_connection do |_|
         ldap_users[:disabled].each do |login|
-          user = User.where("LOWER(login) = ?", login.mb_chars.downcase).first
+          user = self.users.where("LOWER(login) = ?", login.mb_chars.downcase).first
           if user.try(:active?)
             if user.lock!
               change user.login, "-- Locked active user '#{user.login}' (#{user.name})"
@@ -94,7 +94,7 @@ module LdapSync::Infectors::AuthSourceLdap
         sync_groups = !options[:try_to_login] || setting.sync_groups_on_login?
         sync_fields = !is_new_user && (!options[:try_to_login] || setting.sync_fields_on_login?)
 
-        user_data, flags = if options[:try_to_login] && setting.has_account_flags? && sync_fields
+        user_data, flags = if (options[:try_to_login] && setting.has_account_flags?) || sync_fields
           user_attributes = setting.user_ldap_attrs_to_sync + ns(:account_flags) + setting.person_ldap_attrs_to_sync
           user_data = find_user(ldap, user.login, user_attributes)
           [user_data, user_data.present? ? user_data[n(:account_flags)].first : :deleted]
@@ -162,9 +162,11 @@ module LdapSync::Infectors::AuthSourceLdap
 
       def sync_user_fields(user, user_data = nil)
         return unless setting.active? && (setting.sync_user_fields? || setting.sync_person_fields?)
-        user.synced_fields = get_user_fields(user.login, user_data)
+        user_fields = get_user_fields(user.login, user_data)
+        user.synced_fields = user_fields
 
         if user.save
+          sync_person_fields(user, user_fields) if Redmine::Plugin.installed?(:redmine_people)
           user
         else
           error_message = if user.email_is_taken
@@ -175,6 +177,15 @@ module LdapSync::Infectors::AuthSourceLdap
             "#{user.errors.full_messages.join('", "')}"
           end
           error "Could not sync user '#{user.login}': \"#{error_message}\""; nil
+        end
+      end
+
+      def sync_person_fields(user, user_fields)
+        person = Person.find(user.id)
+        person.synced_fields = user_fields
+
+        unless person.save
+          error "Could not sync person '#{user.login}': \"#{person.errors.full_messages.join('", "')}\""; nil
         end
       end
 
@@ -242,8 +253,7 @@ module LdapSync::Infectors::AuthSourceLdap
       end
 
       def find_local_user(username)
-        klass = Redmine::Plugin.installed?(:redmine_people) ? 'Person' : 'User'
-        user = ::Object.const_get(klass).where("LOWER(login) = ?", username.mb_chars.downcase).first
+        user = ::User.const_get(klass).where("LOWER(login) = ?", username.mb_chars.downcase).first
         if user.present? && user.auth_source_id != self.id
           trace "-- Skipping user '#{user.login}': it already exists on a different auth_source"
           return nil, true
