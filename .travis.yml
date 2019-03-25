@@ -17,13 +17,13 @@ env:
   matrix:
    - REDMINE=3.2-stable
    - REDMINE=3.3-stable
-   - REDMINE=master
+   - REDMINE=4.0
 matrix:
   include:
    - rvm: 2.4.3
      env: REDMINE=3.4-stable
    - rvm: 2.4.3
-     env: REDMINE=master
+     env: REDMINE=4.0
   exclude:
    - rvm: 1.9.3
      env: REDMINE=master
