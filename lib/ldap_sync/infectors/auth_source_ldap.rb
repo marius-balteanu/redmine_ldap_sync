@@ -59,9 +59,8 @@ module LdapSync::Infectors::AuthSourceLdap
       end
 
       @closure_cache = new_memory_cache if setting.nested_groups_enabled?
-
       with_ldap_connection do |_|
-        ldap_users[:disabled].each do |login|
+        ldap_users[:locked].each do |login|
           user = User.where("LOWER(login) = ?", login.mb_chars.downcase).first
           if user.try(:active?)
             if user.lock!
