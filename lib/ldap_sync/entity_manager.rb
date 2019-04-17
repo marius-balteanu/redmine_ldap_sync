@@ -30,6 +30,13 @@ module LdapSync::EntityManager
       end
       ldap_attrs_to_sync = setting.user_ldap_attrs_to_sync(fields_to_sync)
 
+      if Redmine::Plugin.installed?(:redmine_people)
+        person_fields_to_sync = setting.person_fields_to_sync
+        fields_to_sync = fields_to_sync + person_fields_to_sync
+        ldap_attrs_to_sync = ldap_attrs_to_sync + setting.person_ldap_attrs_to_sync(person_fields_to_sync)
+        departments = Department.all.pluck(:id, :name)
+      end
+
       user_data ||= with_ldap_connection do |ldap|
         find_user(ldap, username, ldap_attrs_to_sync)
       end
@@ -38,6 +45,9 @@ module LdapSync::EntityManager
       user_fields = user_data.inject({}) do |fields, (attr, value)|
         f = setting.user_field(attr)
         if f && fields_to_sync.include?(f)
+          if (f.to_s == 'department_id' && Redmine::Plugin.installed?(:redmine_people))
+            value, = departments.select {|k,v| v == value.first.to_s} unless value.nil? || value.first.blank?
+          end
           fields[f] = value.first unless value.nil? || value.first.blank?
         end
         fields

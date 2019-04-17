@@ -9,6 +9,7 @@ en:
   label_test: "Test"
   label_result: "Result"
   label_minutes: "minutes"
+  label_people_department_id: "Department"
 
   label_not_executed: "Not executed"
   label_no_fields: "No fields"

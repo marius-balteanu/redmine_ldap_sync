@@ -1,5 +1,8 @@
 module LdapSync::Infectors
   Dir[File.join(File.dirname(__FILE__), "infectors", "*.rb")].each do |file|
+
+    infected_name = File.basename(file, ".rb").classify
+    next if infected_name == 'Person' && !Redmine::Plugin.installed?(:redmine_people)
     require_dependency file;
     infected_name = File.basename(file, ".rb").classify
     _module = const_get(infected_name)

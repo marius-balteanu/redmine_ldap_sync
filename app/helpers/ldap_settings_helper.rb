@@ -113,6 +113,23 @@ module LdapSettingsHelper
     end
   end
 
+  def person_fields
+    return [] unless Redmine::Plugin.installed?(:redmine_people)
+
+     has_person_ldap_attrs = @ldap_setting.has_person_ldap_attrs?
+
+     Person::STANDARD_FIELDS.map do |f|
+      SyncField.new(
+        f,
+        l("label_people_#{f}"),
+        false,
+        @ldap_setting.sync_person_fields? && @ldap_setting.person_fields_to_sync.include?(f.to_s),
+        has_person_ldap_attrs ? @ldap_setting.person_ldap_attrs[f.to_s] : '',
+        ''
+      )
+    end
+  end
+
   def options_for_base_settings
     options = [[l(:option_custom), '']]
     options += base_settings.collect {|k, h| [h['name'], k] }.sort
